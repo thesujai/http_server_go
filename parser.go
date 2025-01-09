@@ -1,4 +1,4 @@
-package main
+package httpserver
 
 import (
 	"bufio"
@@ -19,6 +19,7 @@ type HttpRequest struct {
 
 	ContentLength int64
 	ContentType   string
+
 	// why not a string? the std lib implements it this way, so just a opportunity for me to learn
 	// How is this better?
 	// if we make this a string then we store the entire request body in Memory while serving a request
@@ -41,8 +42,8 @@ KEY2 VAL2
 
 body
 */
-func parse(conn *net.Conn) (*HttpRequest, error) {
-	reader := bufio.NewReader(*conn)
+func Parse(conn net.Conn) (*HttpRequest, error) {
+	reader := bufio.NewReader(conn)
 
 	method, path, version, err := getRequestLine(reader)
 	if err != nil {
@@ -90,7 +91,7 @@ func getRequestLine(reader *bufio.Reader) (method, path, version string, err err
 	}
 	method = parts[0]
 	path = parts[1]
-	version = parts[2]
+	version = strings.TrimRight(parts[2], "\r\n")
 	return
 }
 
@@ -101,14 +102,15 @@ func getHeaders(reader *bufio.Reader) (headers []Header, err error) {
 			return nil, err
 		}
 
-		if line == "" {
+		if line == "\r" || line == "\r\n" {
 			break
 		}
 		parts := strings.SplitN(line, ":", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid header line")
 		}
-		headers = append(headers, map[string]string{parts[0]: parts[1]})
+		fmt.Println(headers)
+		headers = append(headers, map[string]string{strings.TrimSpace(parts[0]): strings.TrimSpace(parts[1])})
 	}
 	return
 }
@@ -116,7 +118,7 @@ func getHeaders(reader *bufio.Reader) (headers []Header, err error) {
 func getContentLength(headers []Header) (int64, error) {
 	for _, header := range headers {
 		if value, exists := header["Content-Length"]; exists {
-			contentLength, err := strconv.Atoi(value)
+			contentLength, err := strconv.Atoi(strings.TrimSpace(value))
 			if err != nil {
 				return 0, fmt.Errorf("cannot parse content length")
 			}
