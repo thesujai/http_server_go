@@ -1,7 +1,6 @@
 package httpserver_test
 
 import (
-	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -13,7 +12,6 @@ func TestServer(t *testing.T) {
 	server := httpserver.NewServer()
 
 	server.Handle("GET", "/", func(req *httpserver.HttpRequest, res *httpserver.Response) {
-		fmt.Println("GET", req.Path)
 		res.Write(200, "Welcome!")
 	})
 
