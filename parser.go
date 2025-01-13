@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -19,6 +20,8 @@ type HttpRequest struct {
 
 	ContentLength int64
 	ContentType   string
+
+	Query url.Values
 
 	// why not a string? the std lib implements it this way, so just a opportunity for me to learn
 	// How is this better?
@@ -49,6 +52,10 @@ func Parse(conn net.Conn) (*HttpRequest, error) {
 	if err != nil {
 		return nil, err
 	}
+	query, err := url.ParseQuery(path)
+	if err != nil {
+		return nil, err
+	}
 	headers, err := getHeaders(reader)
 	if err != nil {
 		return nil, err
@@ -72,6 +79,8 @@ func Parse(conn net.Conn) (*HttpRequest, error) {
 		Headers:       headers,
 		ContentLength: contentLength,
 		ContentType:   contentType,
+
+		Query: query,
 
 		Body: body,
 	}
@@ -109,7 +118,6 @@ func getHeaders(reader *bufio.Reader) (headers []Header, err error) {
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid header line")
 		}
-		fmt.Println(headers)
 		headers = append(headers, map[string]string{strings.TrimSpace(parts[0]): strings.TrimSpace(parts[1])})
 	}
 	return
